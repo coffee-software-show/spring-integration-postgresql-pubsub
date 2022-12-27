@@ -2,17 +2,20 @@ package bootiful.postgres;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.integration.dsl.MessageChannels;
 import org.springframework.integration.jdbc.store.JdbcChannelMessageStore;
 import org.springframework.integration.jdbc.store.channel.PostgresChannelMessageStoreQueryProvider;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.web.servlet.function.RouterFunction;
+import org.springframework.web.servlet.function.ServerResponse;
 
 import javax.sql.DataSource;
 import java.time.Instant;
+import java.util.Map;
+
+import static org.springframework.web.servlet.function.RouterFunctions.route;
 
 @SpringBootApplication
 public class ProducerApplication {
@@ -36,14 +39,14 @@ public class ProducerApplication {
     }
 
     @Bean
-    ApplicationListener<ApplicationReadyEvent> ready(MessageChannel out) {
-        return event -> {
-            var message = MessageBuilder
-                    .withPayload("Hello, world (" + Instant.now() + ")!")
-                    .build();
-            out.send(message);
-        };
+    RouterFunction<ServerResponse> producer(MessageChannel out) {
+        return route()
+                .GET("/send/{name}", request -> {
+                    var message = MessageBuilder.withPayload("Hello, " + request.pathVariable("name") +
+                            " (" + Instant.now() + ")!").build();
+                    var sent = Map.of("sent", out.send(message));
+                    return ServerResponse.ok().body(sent);
+                })
+                .build();
     }
-
-
 }
