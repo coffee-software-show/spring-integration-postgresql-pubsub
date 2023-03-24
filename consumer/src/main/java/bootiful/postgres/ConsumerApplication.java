@@ -5,7 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.jdbc.channel.PgConnectionSupplier;
 import org.springframework.integration.jdbc.channel.PostgresChannelMessageTableSubscriber;
 import org.springframework.integration.jdbc.channel.PostgresSubscribableChannel;
@@ -13,6 +13,8 @@ import org.springframework.integration.jdbc.store.JdbcChannelMessageStore;
 import org.springframework.integration.jdbc.store.channel.PostgresChannelMessageStoreQueryProvider;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
+import org.springframework.messaging.MessagingException;
 
 import javax.sql.DataSource;
 import java.sql.DriverManager;
@@ -49,9 +51,12 @@ public class ConsumerApplication {
                 subscriber);
     }
 
-    @ServiceActivator(inputChannel = "in")
-    public void handle(Message<String> message) {
-        System.out.println("got the message " + message.getPayload());
+    @Bean
+    IntegrationFlow inboundSqlMessagesFlow(MessageChannel in) {
+        return IntegrationFlow
+                .from(in)
+                .handle(message -> System.out.println("got the message " + message.getPayload()))
+                .get();
     }
 
 }
